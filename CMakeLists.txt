@@ -9,6 +9,15 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(PCL 1.2 REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
+
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 install(DIRECTORY launch
 	DESTINATION share/${PROJECT_NAME}
@@ -21,8 +30,13 @@ install(DIRECTORY params
 add_executable(republish_camera_info src/republish_camera_info.cpp)
 ament_target_dependencies(republish_camera_info rclcpp sensor_msgs)
 
+add_executable(publish_full_pointcloud src/publish_full_pointcloud.cpp)
+target_link_libraries (publish_full_pointcloud ${PCL_LIBRARIES})
+ament_target_dependencies(publish_full_pointcloud rclcpp sensor_msgs pcl_conversions tf2 tf2_ros tf2_sensor_msgs)
+
 install(TARGETS
   republish_camera_info
+  publish_full_pointcloud
   DESTINATION lib/${PROJECT_NAME})
 
 
