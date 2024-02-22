@@ -10,8 +10,7 @@
     deadzone: 0.05
     estop_timeout: 9.0
     username: "admin"
-    password: "jtcws7mm6i35"
-    hostname: "10.0.0.3"
+    password: "qvxkcpdccpp7"
     start_estop: False
     preferred_odom_frame: "vision" # pass either odom/vision. This frame will become the parent of body in tf2 tree and will be used in odometry topic. https://dev.bostondynamics.com/docs/concepts/geometry_and_frames.html?highlight=frame#frames-in-the-spot-robot-world for more info.
       #    async_tasks_rate: 10

@@ -5,15 +5,16 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     parameters=[{
-          'frame_id':'left',
+          'frame_id':'body',
           'subscribe_depth':True,
           'subscribe_odom_info':False,
-          'approx_sync':True}]
+          'approx_sync':True,
+          'queue_size':100}]
 
     remappings=[
-          ('rgb/image', '/camera/left/image'),
-          ('rgb/camera_info', '/camera/left/camera_info'),
-          ('depth/image', '/depth_registered/left/image'),
+          ('rgb/image', '/camera/hand/image'),
+          ('rgb/camera_info', '/camera/hand/camera_info'),
+          ('depth/image', '/depth_registered/hand/image'),
           ('odom', '/odometry')]
 
     return LaunchDescription([
