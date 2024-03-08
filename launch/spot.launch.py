@@ -22,7 +22,7 @@ def generate_launch_description():
             launch_arguments={
                 'config_file': params_file,
                 'has_arm': 'True',
-                'launch_rviz': 'True',
+                'launch_rviz': 'False',
             }.items()
         ),
         IncludeLaunchDescription(

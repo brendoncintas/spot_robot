@@ -8,13 +8,15 @@ def generate_launch_description():
           'frame_id':'body',
           'subscribe_depth':True,
           'subscribe_odom_info':False,
+          'subscribe_scan_cloud': True,
           'approx_sync':True,
-          'queue_size':100}]
+          'queue_size': 1000}]
 
     remappings=[
           ('rgb/image', '/camera/hand/image'),
           ('rgb/camera_info', '/camera/hand/camera_info'),
           ('depth/image', '/depth_registered/hand/image'),
+          ('scan_cloud','/cloud_full'),
           ('odom', '/odometry')]
 
     return LaunchDescription([

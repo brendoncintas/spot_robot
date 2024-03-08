@@ -32,6 +32,15 @@ def generate_launch_description():
                 PathJoinSubstitution([
                     FindPackageShare('spot_robot'),
                     'launch',
+                    'publish_full_pointcloud.launch.py'
+                ])
+            ])
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                PathJoinSubstitution([
+                    FindPackageShare('spot_robot'),
+                    'launch',
                     'rtabmap.launch.py'
                 ])
             ])
