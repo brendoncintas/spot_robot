@@ -8,7 +8,7 @@ def generate_launch_description():
           'frame_id':'body',
           'subscribe_depth':True,
           'subscribe_odom_info':False,
-          'subscribe_scan_cloud': True,
+          'subscribe_scan_cloud': False,
           'approx_sync':True,
           'queue_size': 1000}]
 

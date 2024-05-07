@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(PCL 1.2 REQUIRED)
@@ -38,6 +39,14 @@ install(TARGETS
   republish_camera_info
   publish_full_pointcloud
   DESTINATION lib/${PROJECT_NAME})
+
+ament_python_install_package(${PROJECT_NAME})
+
+install(PROGRAMS
+  scripts/publish_local_grid.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 
 if(BUILD_TESTING)

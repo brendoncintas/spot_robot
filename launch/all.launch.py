@@ -54,5 +54,14 @@ def generate_launch_description():
                 ])
             ])
         ),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([
+        #         PathJoinSubstitution([
+        #             FindPackageShare('robot_planning'),
+        #             'launch',
+        #             'surface_scanner_launch.launch.py'
+        #         ])
+        #     ])
+        # ),
     ])
 

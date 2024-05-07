@@ -156,7 +156,7 @@ local_costmap:
         #z_voxels: 16
         max_obstacle_height: 2.0
         #mark_threshold: 0
-        observation_sources: back frontleft frontright left right hand
+        observation_sources: back frontleft frontright left right #hand
         back:
           topic: /depth_registered/back/points
           max_obstacle_height: 0.8
@@ -254,7 +254,7 @@ global_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
-        observation_sources: back frontleft frontright left right hand
+        observation_sources: back frontleft frontright left right #hand
         back:
           topic: /depth_registered/back/points
           max_obstacle_height: 0.8

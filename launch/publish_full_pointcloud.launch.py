@@ -7,7 +7,7 @@ def generate_launch_description():
     parameters=[{
           'frame_id':'body',
           'voxel_size':0.04,
-          'msg_batch_size':10,
+          'msg_batch_size':6,
           'clip_distance':3.0}
           ]
 
