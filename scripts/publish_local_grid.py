@@ -12,14 +12,19 @@ import spot_driver.conversions as conv
 from spot_msgs.action import RobotCommand  # type: ignore
 
 
-
+import struct
 import rclpy
 from rclpy.node import Node
 import numpy as np
+from bosdyn.client.frame_helpers import *
 from utilities.simple_spot_commander import SimpleSpotCommander
 from bosdyn.client.local_grid import LocalGridClient
+from bosdyn.client.robot_state import RobotStateClient
 from bosdyn.api import local_grid_pb2
 import bosdyn.client
+from sensor_msgs.msg import PointCloud2, PointField
+from std_msgs.msg import Header
+
 
 def expand_data_by_rle_count(local_grid_proto, data_type=np.int16):
     """Expand local grid data to full bytes data using the RLE count."""
@@ -87,13 +92,39 @@ def get_terrain_grid(local_grid_proto):
                     local_grid_proto.local_grid.extent.cell_size)
     return pts
 
+def create_pointcloud(tuples, frame_id):
+    #Construct a ROS2 PointCloud2 message using a numpy array of tuples
+    buf = []
+    for pt in tuples:
+        buf += struct.pack('fff', *pt)
+
+    fields = [
+        PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+        PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+        PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)
+    ]
+    
+    pc2 = PointCloud2(
+        header= Header(frame_id=frame_id),
+        height=1,
+        width=len(tuples),
+        is_dense=False,
+        is_bigendian=False,
+        fields=fields,
+        point_step=12,  # Each point consists of three float32s, each float32 is 4 bytes
+        row_step=12 * len(tuples),
+        data=bytearray(buf)
+    )
+
+    return pc2
+
 class LocalGridPub(Node):
     def __init__(self):
         super().__init__('local_grid_publisher')
         sdk = bosdyn.client.create_standard_sdk('SpotViz')
         self.robot_ = sdk.create_robot("192.168.80.3")
         bosdyn.client.util.authenticate(self.robot_)
-        #self.publisher_ = self.create_publisher(PoseArray, 'zigzag_marker', 10)
+        self.pub_ = self.create_publisher(PointCloud2, 'local_grid', 10)
         self.timer_ = self.create_timer(0.5, self.publish)
 
     
@@ -122,11 +153,36 @@ class LocalGridPub(Node):
     def publish(self):
 
         local_grid_client = self.robot_.ensure_client(LocalGridClient.default_service_name)
+        robot_state_client = self.robot_.ensure_client(RobotStateClient.default_service_name)
         proto = local_grid_client.get_local_grids(['terrain'])
+
+
         for local_grid_found in proto:
             if local_grid_found.local_grid_type_name == 'terrain':
+                vision_tform_local_grid = get_a_tform_b(
+                                local_grid_found.local_grid.transforms_snapshot, VISION_FRAME_NAME,
+                                local_grid_found.local_grid.frame_name_local_grid_data).to_proto()
+                cell_size = local_grid_found.local_grid.extent.cell_size
+                cell_count = local_grid_found.local_grid.extent.num_cells_x * local_grid_found.local_grid.extent.num_cells_y
                 terrain_pts = get_terrain_grid(local_grid_found)
-        print(terrain_pts)
+
+        x_base = vision_tform_local_grid.position.x + cell_size * 0.5
+        y_base = vision_tform_local_grid.position.y + cell_size * 0.5
+
+        robot_state = robot_state_client.get_robot_state()
+        vision_tform_ground_plane = get_a_tform_b(robot_state.kinematic_state.transforms_snapshot,
+                                              VISION_FRAME_NAME, GROUND_PLANE_FRAME_NAME)
+        
+        z_ground_in_vision_frame = vision_tform_ground_plane.position.z
+        z = np.ones(cell_count, dtype=np.float32)
+        z *= z_ground_in_vision_frame
+
+        terrain_pts[:, 0] += x_base
+        terrain_pts[:, 1] += y_base
+        terrain_pts[:, 2] += z
+
+        pc2 = create_pointcloud(terrain_pts, "body")
+        self.pub_.publish(pc2)
 
         # Stand the robot up.
         # node.get_logger().info("Powering robot on")
