@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
 
-from rclpy.action import ActionServer
-from bdai_ros2_wrappers.action_client import ActionClientWrapper
 from bosdyn.api import geometry_pb2
 from bosdyn.client import math_helpers
-from bosdyn.client.frame_helpers import GRAV_ALIGNED_BODY_FRAME_NAME, ODOM_FRAME_NAME
-from bosdyn.client.robot_command import RobotCommandBuilder
-from utilities.tf_listener_wrapper import TFListenerWrapper
-
-import spot_driver.conversions as conv
-from spot_msgs.action import RobotCommand  # type: ignore
-
-
 import struct
 import rclpy
 from rclpy.node import Node
 import numpy as np
 from bosdyn.client.frame_helpers import *
-from utilities.simple_spot_commander import SimpleSpotCommander
 from bosdyn.client.local_grid import LocalGridClient
 from bosdyn.client.robot_state import RobotStateClient
 from bosdyn.api import local_grid_pb2
@@ -92,66 +81,42 @@ def get_terrain_grid(local_grid_proto):
                     local_grid_proto.local_grid.extent.cell_size)
     return pts
 
-def create_pointcloud(tuples, frame_id):
-    #Construct a ROS2 PointCloud2 message using a numpy array of tuples
-    buf = []
-    for pt in tuples:
-        buf += struct.pack('fff', *pt)
-
-    fields = [
-        PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-        PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-        PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)
-    ]
-    
-    pc2 = PointCloud2(
-        header= Header(frame_id=frame_id),
-        height=1,
-        width=len(tuples),
-        is_dense=False,
-        is_bigendian=False,
-        fields=fields,
-        point_step=12,  # Each point consists of three float32s, each float32 is 4 bytes
-        row_step=12 * len(tuples),
-        data=bytearray(buf)
-    )
-
-    return pc2
-
 class LocalGridPub(Node):
     def __init__(self):
         super().__init__('local_grid_publisher')
         sdk = bosdyn.client.create_standard_sdk('SpotViz')
         self.robot_ = sdk.create_robot("192.168.80.3")
         bosdyn.client.util.authenticate(self.robot_)
-        self.pub_ = self.create_publisher(PointCloud2, 'local_grid', 10)
-        self.timer_ = self.create_timer(0.5, self.publish)
+        self.pub_ = self.create_publisher(PointCloud2, 'local_grid', 1)
+        self.timer_ = self.create_timer(0.1, self.publish)
 
-    
-        # Set up basic ROS2 utilities for communicating with the driver
-        node = Node("local_grid_publisher")
-        name = ""
-        namespace = ""
-        # tf_listener = TFListenerWrapper(
-        #     "local_grid_tf", wait_for_transform=[name + ODOM_FRAME_NAME, name + GRAV_ALIGNED_BODY_FRAME_NAME]
-        # )
+    def create_pointcloud(self, tuples, frame_id):
+        #Construct a ROS2 PointCloud2 message using a numpy array of tuples
+        buf = []
+        for pt in tuples:
+            buf += struct.pack('fff', *pt)
 
-        robot = SimpleSpotCommander(namespace)
+        fields = [
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1)
+        ]
+        
+        pc2 = PointCloud2(
+            header= Header(frame_id=frame_id, stamp=self.get_clock().now().to_msg()),
+            height=1,
+            width=len(tuples),
+            is_dense=False,
+            is_bigendian=False,
+            fields=fields,
+            point_step=12,  # Each point consists of three float32s, each float32 is 4 bytes
+            row_step=12 * len(tuples),
+            data=bytearray(buf)
+        )
 
-        #robot_command_client = ActionClientWrapper(
-        #    RobotCommand, "robot_command", "arm_simple_action_node", namespace=namespace
-        #)
-
-        # Claim robot
-        node.get_logger().info("Claiming robot")
-        result = robot.command("claim")
-        if not result.success:
-            node.get_logger().error("Unable to claim robot message was " + result.message)
-            return False
-        node.get_logger().info("Claimed robot")
+        return pc2
         
     def publish(self):
-
         local_grid_client = self.robot_.ensure_client(LocalGridClient.default_service_name)
         robot_state_client = self.robot_.ensure_client(RobotStateClient.default_service_name)
         proto = local_grid_client.get_local_grids(['terrain'])
@@ -169,35 +134,29 @@ class LocalGridPub(Node):
         x_base = vision_tform_local_grid.position.x + cell_size * 0.5
         y_base = vision_tform_local_grid.position.y + cell_size * 0.5
 
+
+
         robot_state = robot_state_client.get_robot_state()
         vision_tform_ground_plane = get_a_tform_b(robot_state.kinematic_state.transforms_snapshot,
-                                              VISION_FRAME_NAME, GROUND_PLANE_FRAME_NAME)
+                                              VISION_FRAME_NAME, BODY_FRAME_NAME)
         
         z_ground_in_vision_frame = vision_tform_ground_plane.position.z
         z = np.ones(cell_count, dtype=np.float32)
         z *= z_ground_in_vision_frame
 
+        
         terrain_pts[:, 0] += x_base
         terrain_pts[:, 1] += y_base
-        terrain_pts[:, 2] += z
 
-        pc2 = create_pointcloud(terrain_pts, "body")
+        terrain_pts[:, 2] -= z
+
+        #Filter out z values close to 0
+        mask = np.abs(terrain_pts[:, 2]) >= 0.03 + z
+        terrain_pts = terrain_pts[mask]
+
+
+        pc2 = self.create_pointcloud(terrain_pts, "body")
         self.pub_.publish(pc2)
-
-        # Stand the robot up.
-        # node.get_logger().info("Powering robot on")
-        # result = robot.command("power_on")
-        # if not result.success:
-        #     node.get_logger().error("Unable to power on robot message was " + result.message)
-        #     return False
-        # node.get_logger().info("Standing robot up")
-        # result = robot.command("stand")
-        # if not result.success:
-        #     node.get_logger().error("Robot did not stand message was " + result.message)
-        #     return False
-        # node.get_logger().info("Successfully stood up.")
-
-        # tf_listener.shutdown()
 
         return True
 

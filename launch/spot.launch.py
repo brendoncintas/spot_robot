@@ -103,6 +103,23 @@ def generate_launch_description():
                 'camera': 'hand',
             }.items()
         ),
-
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                PathJoinSubstitution([
+                    FindPackageShare('spot_robot'),
+                    'launch',
+                    'publish_local_grid.launch.py'
+                ])
+            ])
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                PathJoinSubstitution([
+                    FindPackageShare('spot_robot'),
+                    'launch',
+                    'voxelize.launch.py'
+                ])
+            ]),
+        ),
     ])
 

@@ -35,9 +35,16 @@ add_executable(publish_full_pointcloud src/publish_full_pointcloud.cpp)
 target_link_libraries (publish_full_pointcloud ${PCL_LIBRARIES})
 ament_target_dependencies(publish_full_pointcloud rclcpp sensor_msgs pcl_conversions tf2 tf2_ros tf2_sensor_msgs)
 
+
+add_executable(voxelize src/voxelize.cpp)
+target_link_libraries (voxelize ${PCL_LIBRARIES})
+ament_target_dependencies(voxelize rclcpp sensor_msgs pcl_conversions)
+
+
 install(TARGETS
   republish_camera_info
   publish_full_pointcloud
+  voxelize
   DESTINATION lib/${PROJECT_NAME})
 
 ament_python_install_package(${PROJECT_NAME})

@@ -8,7 +8,7 @@ def generate_launch_description():
           'frame_id':'body',
           'subscribe_depth':True,
           'subscribe_odom_info':False,
-          'subscribe_scan_cloud': False,
+          'subscribe_scan_cloud': True,
           'approx_sync':True,
           'queue_size': 1000}]
 
@@ -16,7 +16,7 @@ def generate_launch_description():
           ('rgb/image', '/camera/hand/image'),
           ('rgb/camera_info', '/camera/hand/camera_info'),
           ('depth/image', '/depth_registered/hand/image'),
-          ('scan_cloud','/cloud_full'),
+          ('scan_cloud','/local_grid_voxelized'),
           ('odom', '/odometry')]
 
     return LaunchDescription([

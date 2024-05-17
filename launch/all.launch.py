@@ -45,21 +45,12 @@ def generate_launch_description():
                 ])
             ])
         ),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                PathJoinSubstitution([
-                    FindPackageShare('spot_robot'),
-                    'launch',
-                    'nav2.launch.py'
-                ])
-            ])
-        ),
         # IncludeLaunchDescription(
         #     PythonLaunchDescriptionSource([
         #         PathJoinSubstitution([
-        #             FindPackageShare('robot_planning'),
+        #             FindPackageShare('spot_robot'),
         #             'launch',
-        #             'surface_scanner_launch.launch.py'
+        #             'nav2.launch.py'
         #         ])
         #     ])
         # ),
